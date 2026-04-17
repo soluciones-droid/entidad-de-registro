@@ -1,0 +1,22 @@
+[ req ]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+req_extensions = req_ext
+
+[ req_distinguished_name ]
+C = PE
+ST = Lima
+L = Lima
+O = Entidad Registradora Demo
+OU = Persona Natural
+CN = __COMMON_NAME__
+serialNumber = __DNI__
+emailAddress = __EMAIL__
+
+[ req_ext ]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth, emailProtection
+subjectKeyIdentifier = hash

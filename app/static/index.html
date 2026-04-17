@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entidad de Registro - Dashboard & Registro</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Forge for Cryptography (CSR) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- Navigation Bar -->
+        <nav class="glass-nav">
+            <div class="nav-container">
+                <div class="logo">
+                    <span class="icon-brand"><i data-lucide="shield-check"></i></span>
+                    <span class="brand-text">ER RA <span class="badge">V1.0</span></span>
+                </div>
+                <div class="nav-links">
+                    <button id="nav-home" class="nav-btn active" onclick="router.navigate('home')">
+                        <i data-lucide="user-plus"></i> Registro
+                    </button>
+                    <button id="nav-dashboard" class="nav-btn" onclick="router.navigate('dashboard')">
+                        <i data-lucide="layout-dashboard"></i> Dashboard
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="view-container" class="container">
+            <div class="loader">
+                <div class="spinner"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals / Overlays -->
+    <div id="modal-overlay" class="overlay hidden">
+        <div id="modal-content" class="modal-card"></div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-container"></div>
+
+    <!-- QR & Face Recognition Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
