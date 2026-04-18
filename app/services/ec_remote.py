@@ -10,6 +10,18 @@ from app.config import Settings
 from app.models import RegistrationRecord
 
 
+# Mapeo de perfiles internos de la ER a los perfiles aceptados por la EC.
+# La EC solo acepta: 'firma', 'cifrado', 'autenticacion'
+PROFILE_MAP: dict[str, str] = {
+    "natural_person": "firma",
+    "firma": "firma",
+    "firma_digital": "firma",
+    "cifrado": "cifrado",
+    "autenticacion": "autenticacion",
+    "authentication": "autenticacion",
+}
+
+
 class ECRemoteClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -28,7 +40,7 @@ class ECRemoteClient:
             "securityOfficer": self.settings.ec_security_officer,
             "approvedAt": record.updated_at.isoformat().replace("+00:00", "Z"),
             "commonName": f"{record.applicant.given_name} {record.applicant.first_surname} {record.applicant.second_surname or ''}".strip(),
-            "profile": record.applicant.certificate_profile,
+            "profile": PROFILE_MAP.get(record.applicant.certificate_profile, "firma"),
             "algorithm": "rsa",
             "documentId": record.applicant.dni,
             "documentType": "DNI",

@@ -331,8 +331,11 @@ const views = {
 
                 <div style="margin-top: 2rem; width: 100%; max-width: 320px;">
                     <button id="btn-capture-mobile" class="btn-primary" style="width:100%; height: 65px; border-radius: 12px; font-size: 1.1rem; opacity: 0.5; background: #1e293b; color: #94a3b8; border: 1px solid #334155;" onclick="webcam.captureMobile('${sessionId}')" disabled>
-                        ESPERANDO GIROS...
+                        BUSCANDO ROSTRO...
                     </button>
+                    <p style="margin-top: 1.5rem; text-align: center;">
+                        <a href="javascript:void(0)" onclick="webcam.forceEnableCapture()" style="color: var(--text-secondary); font-size: 0.8rem; text-decoration: underline;">¿No detecta tu rostro? Pulsar aquí para forzar captura</a>
+                    </p>
                 </div>
             </div>
         `;
@@ -563,22 +566,34 @@ const webcam = {
     },
     async initMobile(sessionId) {
         try {
-            // Cargar modelos de face-api (solo los necesarios y ligeros)
+            ui.toast('Cargando motor de IA (FaceAPI)...', 'info');
+            
+            // Cargar modelos mínimos necesarios desde CDN (más ligero)
             const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
             await Promise.all([
                 faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
                 faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
             ]);
             
-            this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            ui.toast('Iniciando cámara...', 'info');
+            this.stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'user',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                } 
+            });
+            
             const video = document.getElementById('webcam-mobile');
             if (video) {
                 video.srcObject = this.stream;
-                this.startFaceDetection(video);
+                video.onloadedmetadata = () => {
+                    this.startFaceDetection(video);
+                };
             }
         } catch (err) {
             console.error('Mobile WebCam Error:', err);
-            ui.toast('No se pudo acceder a la cámara del celular', 'danger');
+            ui.toast('Error al iniciar cámara: ' + err.message, 'danger');
         }
     },
     startFaceDetection(video) {
@@ -587,64 +602,38 @@ const webcam = {
         const statusEl = document.getElementById('liveness-status');
         const boxEl = document.getElementById('liveness-instruction-box');
         
-        let challenge = 'left'; // 'left', 'right', 'done'
-        
-        // Inicializar estado visual
-        if (statusEl) statusEl.innerText = '⬅️ GIRE A LA IZQUIERDA';
+        if (statusEl) statusEl.innerText = '🔍 BUSCANDO ROSTRO...';
         
         const detect = async () => {
             if (!video || !this.isMobileActive) return;
             
             try {
-                // Usamos el motor de alta precisión SSD MobileNet v1
-                const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-                    .withFaceLandmarks();
+                // Validación de rostro simplificada con FaceAPI
+                const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }));
                 
                 if (detection) {
-                    const landmarks = detection.landmarks.positions;
-                    const box = detection.detection.box;
-                    const nose = landmarks[30]; 
-                    
-                    // Posición relativa de la nariz en el cuadro de la cara (0 a 1)
-                    // 0.5 es el centro exacto
-                    const relativeX = (nose.x - box.x) / box.width;
-
-                    if (challenge === 'left') {
-                        if (statusEl) statusEl.innerText = '⬅️ GIRE UN POCO A LA IZQUIERDA';
-                        if (boxEl) boxEl.style.background = 'var(--info)';
-                        
-                        if (relativeX < 0.42) { // Un giro leve es suficiente
-                            challenge = 'right';
-                            if (statusEl) statusEl.innerText = '➡️ ¡BIEN! AHORA A LA DERECHA';
-                            if (boxEl) boxEl.style.background = 'var(--warning)';
-                        }
-                    } else if (challenge === 'right') {
-                        if (statusEl) statusEl.innerText = '➡️ GIRE UN POCO A LA DERECHA';
-                        if (relativeX > 0.58) { 
-                            challenge = 'done';
-                        }
+                    if (statusEl) statusEl.innerText = '✅ ROSTRO DETECTADO';
+                    if (boxEl) boxEl.style.background = 'var(--success)';
+                    if (oval) {
+                        oval.style.borderColor = 'var(--success)';
+                        oval.style.opacity = '1';
                     }
 
-                    if (challenge === 'done') {
-                        if (btn && btn.disabled) {
-                            btn.disabled = false;
-                            btn.style.opacity = '1';
-                            btn.style.background = 'var(--primary-color)';
-                            btn.style.color = 'white';
-                            btn.innerHTML = '<span>📸 CAPTURAR AHORA</span>';
-                            btn.classList.add('pulse-animation');
-                            if (statusEl) statusEl.innerText = '✅ ¡VALIDADO! MIRE AL FRENTE';
-                            if (boxEl) boxEl.style.background = 'var(--success)';
-                        }
+                    if (btn && btn.disabled) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.background = 'var(--primary-color)';
+                        btn.style.color = 'white';
+                        btn.innerHTML = '<span>📸 TOMAR FOTO AHORA</span>';
                     }
                 } else {
-                    if (oval) {
-                        oval.style.borderColor = 'var(--primary-color)';
-                        oval.style.opacity = (Math.sin(Date.now() / 200) * 0.5 + 0.5).toString(); // Parpadeo azul
-                    }
-                    if (statusEl && challenge !== 'done') {
-                        statusEl.innerText = 'BUSCANDO ROSTRO...';
+                    if (statusEl && statusEl.innerText !== '⚠️ MODO MANUAL ACTIVADO') {
+                        if (statusEl) statusEl.innerText = '🔍 BUSCANDO ROSTRO...';
                         if (boxEl) boxEl.style.background = 'var(--danger)';
+                        if (oval) {
+                            oval.style.borderColor = 'var(--primary-color)';
+                            oval.style.opacity = '0.5';
+                        }
                     }
                 }
             } catch (err) {
@@ -652,7 +641,7 @@ const webcam = {
             }
             
             if (this.isMobileActive) {
-                requestAnimationFrame(detect);
+                setTimeout(() => requestAnimationFrame(detect), 200); // 5 FPS para ahorrar batería
             }
         };
         
@@ -686,7 +675,11 @@ const webcam = {
                 body: formData
             });
             if (res.ok) {
-                document.getElementById('mobile-status').innerText = '✅ ¡Foto enviada! Revisa tu computadora.';
+                const badge = document.getElementById('liveness-status');
+                if (badge) {
+                    badge.innerText = '✅ ¡FOTO ENVIADA!';
+                    badge.parentElement.style.background = 'var(--success)';
+                }
                 btn.style.display = 'none';
                 this.stop();
             } else {
@@ -697,6 +690,23 @@ const webcam = {
             btn.disabled = false;
             btn.innerText = 'Reintentar Captura';
         }
+    },
+    forceEnableCapture() {
+        const btn = document.getElementById('btn-capture-mobile');
+        const statusEl = document.getElementById('liveness-status');
+        const boxEl = document.getElementById('liveness-instruction-box');
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.background = 'var(--warning)';
+            btn.style.color = 'black';
+            btn.innerHTML = '<span>📸 TOMAR FOTO AHORA (FORZADO)</span>';
+        }
+        if (statusEl) statusEl.innerText = '⚠️ MODO MANUAL ACTIVADO';
+        if (boxEl) boxEl.style.background = 'var(--warning)';
+        
+        ui.toast('Modo manual activado. Tome su foto ahora.', 'warning');
     }
 };
 
@@ -857,6 +867,10 @@ const registration = {
 
         if (!dni || !given_name || !first_surname || !email) {
             return ui.toast('Todos los campos son obligatorios', 'warning');
+        }
+
+        if (dni.length !== 8 || isNaN(dni)) {
+            return ui.toast('El DNI debe tener exactamente 8 números.', 'danger');
         }
 
         try {

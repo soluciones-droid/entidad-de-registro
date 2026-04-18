@@ -214,6 +214,15 @@ def approve_request(
     return service.approve_request(request_id, review)
 
 
+@app.post("/api/v1/requests/{request_id}/retry-ec-delivery", response_model=RegistrationStatusResponse)
+def retry_ec_delivery(
+    request_id: str,
+    service: RegistrationService = Depends(get_registration_service),
+    _: None = Depends(require_api_key),
+) -> RegistrationStatusResponse:
+    return service.retry_remote_delivery(request_id)
+
+
 @app.post("/api/v1/requests/{request_id}/reject", response_model=RegistrationStatusResponse)
 def reject_request(
     request_id: str,
